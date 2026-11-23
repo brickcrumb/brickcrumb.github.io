@@ -1,6 +1,7 @@
 [
   {
     "olympiad": "Олимпиада 2×2",
+    "subject": "math",
     "event": "Второй (устный) тур",
     "type": "tour",
     "date_start": "2026-03-22",
@@ -13,6 +14,7 @@
   },
   {
     "olympiad": "Осенний Олимп",
+    "subject": "math",
     "event": "Отборочный тур",
     "type": "tour",
     "date_start": "2026-09-25",
@@ -25,6 +27,7 @@
   },
   {
     "olympiad": "Осенний Олимп",
+    "subject": "math",
     "event": "Основной тур",
     "type": "tour",
     "date_start": "2026-11-08",
@@ -37,6 +40,7 @@
   },
   {
     "olympiad": "Матсдача",
+    "subject": "math",
     "event": "Игра",
     "type": "tour",
     "date_start": "2026-04-19",
@@ -49,6 +53,7 @@
   },
   {
     "olympiad": "Турнир Архимеда",
+    "subject": "math",
     "event": "Зимний тур",
     "type": "tour",
     "date_start": "2027-01-17",
@@ -61,6 +66,7 @@
   },
   {
     "olympiad": "Турнир Архимеда",
+    "subject": "math",
     "event": "Весенний тур",
     "type": "tour",
     "date_start": "2027-03-01",
@@ -73,6 +79,7 @@
   },
   {
     "olympiad": "Санкт-Петербургская олимпиада (начальная)",
+    "subject": "math",
     "event": "Регистрация",
     "type": "registration",
     "date_start": null,
@@ -85,6 +92,7 @@
   },
   {
     "olympiad": "Олимпиада «Ломоносов»",
+    "subject": "math",
     "event": "Регистрация",
     "type": "registration",
     "date_start": null,
@@ -97,6 +105,7 @@
   },
   {
     "olympiad": "МОШ (Московская математическая)",
+    "subject": "math",
     "event": "Регистрация",
     "type": "registration",
     "date_start": null,
@@ -109,6 +118,7 @@
   },
   {
     "olympiad": "Математический праздник",
+    "subject": "math",
     "event": "Проведение",
     "type": "tour",
     "date_start": null,
@@ -121,6 +131,7 @@
   },
   {
     "olympiad": "Турнир имени М.В. Ломоносова",
+    "subject": "math",
     "event": "Проведение",
     "type": "tour",
     "date_start": null,
@@ -133,6 +144,7 @@
   },
   {
     "olympiad": "Высшая проба",
+    "subject": "math",
     "event": "Регистрация",
     "type": "registration",
     "date_start": null,
@@ -145,6 +157,7 @@
   },
   {
     "olympiad": "Олимпиада «Росатом»",
+    "subject": "math",
     "event": "Регистрация",
     "type": "registration",
     "date_start": null,
@@ -157,6 +170,7 @@
   },
   {
     "olympiad": "Олимпиада «Физтех»",
+    "subject": "math",
     "event": "Регистрация",
     "type": "registration",
     "date_start": null,
