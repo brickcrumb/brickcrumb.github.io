@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Календарь олимпиад</title>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --card: #ffffff;
+    --text: #1f2430;
+    --muted: #6b7280;
+    --accent: #4f46e5;
+    --red: #ef4444;
+    --orange: #f97316;
+    --yellow: #eab308;
+    --gray: #9ca3af;
+    --green: #10b981;
+    --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 1.6rem; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: .9rem; margin-bottom: 20px; }
+
+  .next-card {
+    background: linear-gradient(135deg, var(--accent), #7c3aed);
+    color: #fff;
+    border-radius: 16px;
+    padding: 22px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 24px rgba(79,70,229,.25);
+  }
+  .next-card .label { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; opacity: .85; }
+  .next-card .title { font-size: 1.35rem; font-weight: 700; margin: 6px 0 10px; }
+  .next-card .when { font-size: 1rem; opacity: .95; }
+  .next-card .countdown { font-size: .9rem; margin-top: 8px; opacity: .85; }
+  .next-card a { color: #fff; text-decoration: underline; }
+  .next-card.empty { background: #e5e7eb; color: var(--muted); box-shadow: none; }
+
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .filters select {
+    padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: #fff; font-size: .9rem; cursor: pointer;
+  }
+
+  .event {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    border-left: 4px solid var(--gray);
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    transition: transform .1s;
+  }
+  .event:hover { transform: translateX(2px); }
+  .event.today { border-left-color: var(--red); }
+  .event.tomorrow { border-left-color: var(--orange); }
+  .event.thisweek { border-left-color: var(--yellow); }
+  .event.past { opacity: .5; border-left-color: var(--gray); }
+  .event.upcoming { border-left-color: var(--green); }
+
+  .event-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .event-name { font-weight: 600; font-size: 1rem; }
+  .event-date { font-size: .85rem; color: var(--muted); white-space: nowrap; }
+  .event-meta { margin-top: 6px; font-size: .85rem; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+  .event-meta a { color: var(--accent); text-decoration: none; }
+  .event-meta a:hover { text-decoration: underline; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 6px;
+    font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em;
+  }
+  .badge.today { background: #fee2e2; color: var(--red); }
+  .badge.tomorrow { background: #ffedd5; color: var(--orange); }
+  .badge.thisweek { background: #fef9c3; color: #a16207; }
+  .badge.upcoming { background: #d1fae5; color: #047857; }
+  .badge.past { background: #f3f4f6; color: var(--muted); }
+  .badge.tbd { background: #ede9fe; color: var(--accent); }
+
+  .section-title { font-size: 1.05rem; font-weight: 600; margin: 28px 0 12px; }
+  .empty-msg { color: var(--muted); font-size: .9rem; padding: 20px; text-align: center; background: var(--card); border-radius: 12px; }
+</style>
+</head>
+<body>
+
+<h1>📅 Календарь олимпиад</h1>
+<div class="subtitle">Ближайшие события по математике</div>
+
+<div id="next-event" class="next-card empty">Загрузка…</div>
+
+<div class="filters">
+  <select id="filter-olympiad"><option value="">Все олимпиады</option></select>
+  <select id="filter-type">
+    <option value="">Все события</option>
+    <option value="registration">Регистрация</option>
+    <option value="tour">Тур / проведение</option>
+    <option value="results">Итоги</option>
+  </select>
+  <select id="filter-past">
+    <option value="hide">Без прошедших</option>
+    <option value="show">Показать прошедшие</option>
+  </select>
+</div>
+
+<div class="section-title">Ближайшие события</div>
+<div id="upcoming-list"></div>
+
+<div class="section-title">Даты уточняются</div>
+<div id="tbd-list"></div>
+
+<script>
+const MS_DAY = 86400000;
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const today = new Date(todayStr());
+  const target = new Date(dateStr);
+  return Math.round((target - today) / MS_DAY);
+}
+
+function fmtDate(dateStr) {
+  if (!dateStr) return 'дата уточняется';
+  const d = new Date(dateStr);
+  const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+  return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+function fmtRange(s, e) {
+  if (!s) return 'дата уточняется';
+  if (!e || s === e) return fmtDate(s);
+  return fmtDate(s) + ' – ' + fmtDate(e);
+}
+
+function statusClass(days) {
+  if (days === null) return 'tbd';
+  if (days < 0) return 'past';
+  if (days === 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  if (days <= 7) return 'thisweek';
+  return 'upcoming';
+}
+
+function statusBadge(days) {
+  if (days === null) return '<span class="badge tbd">дата уточняется</span>';
+  if (days < 0) return '<span class="badge past">прошло</span>';
+  if (days === 0) return '<span class="badge today">сегодня</span>';
+  if (days === 1) return '<span class="badge tomorrow">завтра</span>';
+  if (days <= 7) return '<span class="badge thisweek">через ' + days + ' дн.</span>';
+  return '<span class="badge upcoming">через ' + days + ' дн.</span>';
+}
+
+function typeLabel(t) {
+  if (t === 'registration') return '📝 Регистрация';
+  if (t === 'results') return '🏆 Итоги';
+  if (t === 'tour') return '🧮 Тур';
+  return '';
+}
+
+let allEvents = [];
+
+function render(events) {
+  // Ближайшее
+  const upcoming = events.filter(e => e.date_start && daysUntil(e.date_start) >= 0)
+                         .sort((a,b) => new Date(a.date_start) - new Date(b.date_start));
+  const next = upcoming[0];
+  const nextCard = document.getElementById('next-event');
+  if (!next) {
+    nextCard.className = 'next-card empty';
+    nextCard.innerHTML = 'Ближайших событий с известными датами нет';
+  } else {
+    const d = daysUntil(next.date_start);
+    const cd = d === 0 ? 'Сегодня!' : d === 1 ? 'Завтра' : 'Через ' + d + ' дн.';
+    nextCard.className = 'next-card';
+    nextCard.innerHTML = `
+      <div class="label">Ближайшее событие</div>
+      <div class="title">${next.olympiad} — ${next.event}</div>
+      <div class="when">📅 ${fmtRange(next.date_start, next.date_end)}</div>
+      <div class="countdown">${cd} · <a href="${next.url}" target="_blank">перейти на сайт →</a></div>
+    `;
+  }
+
+  // Список
+  const list = document.getElementById('upcoming-list');
+  const tbdList = document.getElementById('tbd-list');
+  list.innerHTML = '';
+  tbdList.innerHTML = '';
+
+  const withDates = events.filter(e => e.date_start)
+                         .sort((a,b) => new Date(a.date_start) - new Date(b.date_start));
+  const tbd = events.filter(e => !e.date_start);
+
+  if (withDates.length === 0) {
+    list.innerHTML = '<div class="empty-msg">Нет событий с известными датами</div>';
+  } else {
+    withDates.forEach(e => list.appendChild(renderEvent(e)));
+  }
+
+  if (tbd.length === 0) {
+    tbdList.innerHTML = '<div class="empty-msg">Все даты известны 🎉</div>';
+  } else {
+    tbd.forEach(e => tbdList.appendChild(renderEvent(e)));
+  }
+}
+
+function renderEvent(e) {
+  const d = daysUntil(e.date_start);
+  const cls = statusClass(d);
+  const div = document.createElement('div');
+  div.className = 'event ' + cls;
+  const typeHtml = e.type ? '<span>' + typeLabel(e.type) + '</span>' : '';
+  const classHtml = e.classes ? '<span>👥 ' + e.classes + ' кл.</span>' : '';
+  const formatHtml = e.format ? '<span>📍 ' + e.format + '</span>' : '';
+  const prepHtml = e.prep_url ? '<a href="' + e.prep_url + '" target="_blank">📚 подготовка</a>' : '';
+  const notesHtml = e.notes ? '<span>💬 ' + e.notes + '</span>' : '';
+  div.innerHTML = `
+    <div class="event-head">
+      <div>
+        <div class="event-name">${e.olympiad} — ${e.event}</div>
+        <div class="event-meta">${typeHtml}${classHtml}${formatHtml}${notesHtml}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="event-date">${fmtRange(e.date_start, e.date_end)}</div>
+        <div style="margin-top:4px">${statusBadge(d)}</div>
+      </div>
+    </div>
+    <div class="event-meta" style="margin-top:8px">
+      <a href="${e.url}" target="_blank">🔗 сайт олимпиады</a>
+      ${prepHtml}
+    </div>
+  `;
+  return div;
+}
+
+function applyFilters() {
+  const fOlym = document.getElementById('filter-olympiad').value;
+  const fType = document.getElementById('filter-type').value;
+  const fPast = document.getElementById('filter-past').value;
+  let filtered = allEvents.slice();
+  if (fOlym) filtered = filtered.filter(e => e.olympiad === fOlym);
+  if (fType) filtered = filtered.filter(e => e.type === fType);
+  if (fPast === 'hide') filtered = filtered.filter(e => !e.date_start || daysUntil(e.date_start) >= 0);
+  render(filtered);
+}
+
+function fillOlympiadFilter() {
+  const sel = document.getElementById('filter-olympiad');
+  const names = [...new Set(allEvents.map(e => e.olympiad))].sort();
+  names.forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n; opt.textContent = n;
+    sel.appendChild(opt);
+  });
+}
+
+fetch('data.json')
+  .then(r => r.json())
+  .then(data => {
+    allEvents = data;
+    fillOlympiadFilter();
+    render(allEvents);
+  })
+  .catch(err => {
+    document.getElementById('next-event').textContent = 'Ошибка загрузки data.json: ' + err;
+  });
+
+document.getElementById('filter-olympiad').addEventListener('change', applyFilters);
+document.getElementById('filter-type').addEventListener('change', applyFilters);
+document.getElementById('filter-past').addEventListener('change', applyFilters);
+</script>
+</body>
+</html>
