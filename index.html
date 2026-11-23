@@ -70,9 +70,10 @@
   .event-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
   .event-name { font-weight: 600; font-size: 1rem; }
   .event-date { font-size: .85rem; color: var(--muted); white-space: nowrap; }
-  .event-meta { margin-top: 6px; font-size: .85rem; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+  .event-meta { margin-top: 6px; font-size: .85rem; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
   .event-meta a { color: var(--accent); text-decoration: none; }
   .event-meta a:hover { text-decoration: underline; }
+
   .badge {
     display: inline-block; padding: 2px 8px; border-radius: 6px;
     font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em;
@@ -84,6 +85,18 @@
   .badge.past { background: #f3f4f6; color: var(--muted); }
   .badge.tbd { background: #ede9fe; color: var(--accent); }
 
+  .subject-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 6px;
+    font-size: .72rem; font-weight: 600; letter-spacing: .02em;
+  }
+  .subject-math       { background: #dbeafe; color: #1d4ed8; }
+  .subject-physics    { background: #ede9fe; color: #6d28d9; }
+  .subject-informatics{ background: #d1fae5; color: #047857; }
+  .subject-astronomy  { background: #e0e7ff; color: #3730a3; }
+  .subject-biology    { background: #ccfbf1; color: #0f766e; }
+  .subject-chemistry  { background: #ffedd5; color: #c2410c; }
+  .subject-ecology    { background: #ecfccb; color: #4d7c0f; }
+
   .section-title { font-size: 1.05rem; font-weight: 600; margin: 28px 0 12px; }
   .empty-msg { color: var(--muted); font-size: .9rem; padding: 20px; text-align: center; background: var(--card); border-radius: 12px; }
 </style>
@@ -91,11 +104,12 @@
 <body>
 
 <h1>📅 Календарь олимпиад</h1>
-<div class="subtitle">Ближайшие события по математике</div>
+<div class="subtitle">Ближайшие события по всем предметам</div>
 
 <div id="next-event" class="next-card empty">Загрузка…</div>
 
 <div class="filters">
+  <select id="filter-subject"><option value="">Все предметы</option></select>
   <select id="filter-olympiad"><option value="">Все олимпиады</option></select>
   <select id="filter-type">
     <option value="">Все события</option>
@@ -117,6 +131,16 @@
 
 <script>
 const MS_DAY = 86400000;
+
+const SUBJECTS = {
+  math:        { label: 'Математика',   cls: 'subject-math' },
+  physics:     { label: 'Физика',       cls: 'subject-physics' },
+  informatics: { label: 'Информатика',  cls: 'subject-informatics' },
+  astronomy:   { label: 'Астрономия',   cls: 'subject-astronomy' },
+  biology:     { label: 'Биология',     cls: 'subject-biology' },
+  chemistry:   { label: 'Химия',        cls: 'subject-chemistry' },
+  ecology:     { label: 'Экология',     cls: 'subject-ecology' }
+};
 
 function todayStr() {
   const d = new Date();
@@ -168,10 +192,15 @@ function typeLabel(t) {
   return '';
 }
 
+function subjectBadge(subj) {
+  if (!subj || !SUBJECTS[subj]) return '';
+  const s = SUBJECTS[subj];
+  return '<span class="subject-badge ' + s.cls + '">' + s.label + '</span>';
+}
+
 let allEvents = [];
 
 function render(events) {
-  // Ближайшее
   const upcoming = events.filter(e => e.date_start && daysUntil(e.date_start) >= 0)
                          .sort((a,b) => new Date(a.date_start) - new Date(b.date_start));
   const next = upcoming[0];
@@ -191,7 +220,6 @@ function render(events) {
     `;
   }
 
-  // Список
   const list = document.getElementById('upcoming-list');
   const tbdList = document.getElementById('tbd-list');
   list.innerHTML = '';
@@ -228,7 +256,7 @@ function renderEvent(e) {
     <div class="event-head">
       <div>
         <div class="event-name">${e.olympiad} — ${e.event}</div>
-        <div class="event-meta">${typeHtml}${classHtml}${formatHtml}${notesHtml}</div>
+        <div class="event-meta">${subjectBadge(e.subject)}${typeHtml}${classHtml}${formatHtml}${notesHtml}</div>
       </div>
       <div style="text-align:right">
         <div class="event-date">${fmtRange(e.date_start, e.date_end)}</div>
@@ -244,14 +272,28 @@ function renderEvent(e) {
 }
 
 function applyFilters() {
+  const fSubj = document.getElementById('filter-subject').value;
   const fOlym = document.getElementById('filter-olympiad').value;
   const fType = document.getElementById('filter-type').value;
   const fPast = document.getElementById('filter-past').value;
   let filtered = allEvents.slice();
+  if (fSubj) filtered = filtered.filter(e => e.subject === fSubj);
   if (fOlym) filtered = filtered.filter(e => e.olympiad === fOlym);
   if (fType) filtered = filtered.filter(e => e.type === fType);
   if (fPast === 'hide') filtered = filtered.filter(e => !e.date_start || daysUntil(e.date_start) >= 0);
   render(filtered);
+}
+
+function fillSubjectFilter() {
+  const sel = document.getElementById('filter-subject');
+  const usedSubjects = [...new Set(allEvents.map(e => e.subject).filter(Boolean))];
+  usedSubjects.forEach(code => {
+    if (!SUBJECTS[code]) return;
+    const opt = document.createElement('option');
+    opt.value = code;
+    opt.textContent = SUBJECTS[code].label;
+    sel.appendChild(opt);
+  });
 }
 
 function fillOlympiadFilter() {
@@ -268,6 +310,7 @@ fetch('data.json')
   .then(r => r.json())
   .then(data => {
     allEvents = data;
+    fillSubjectFilter();
     fillOlympiadFilter();
     render(allEvents);
   })
@@ -275,6 +318,7 @@ fetch('data.json')
     document.getElementById('next-event').textContent = 'Ошибка загрузки data.json: ' + err;
   });
 
+document.getElementById('filter-subject').addEventListener('change', applyFilters);
 document.getElementById('filter-olympiad').addEventListener('change', applyFilters);
 document.getElementById('filter-type').addEventListener('change', applyFilters);
 document.getElementById('filter-past').addEventListener('change', applyFilters);
